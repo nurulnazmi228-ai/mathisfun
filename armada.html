@@ -39,13 +39,14 @@ input{font:inherit;font-weight:800;font-size:1.6rem;text-align:center;width:100%
 .fb span{display:block;color:var(--tx);font-weight:500;font-size:.95rem}
 .rk{display:flex;gap:12px;align-items:center;border-left:6px solid;padding:8px 10px;margin:6px 0;background:#0c2142;border-radius:10px;font-size:1.2rem}
 .rk span:last-child{margin-left:auto;color:var(--mu);font-size:.95rem}
+@media(min-width:1100px){#app{max-width:1300px}.sc{min-height:80px;font-size:1.6rem}.mc{max-width:900px}.qt{font-size:2.1rem}input{height:68px;font-size:2rem}.tm{font-size:1.05rem}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="md" class="md" hidden></div>
 <script>
-const T=[{n:'Armada Merah',c:'#ff5a6e',f:'#fff'},{n:'Armada Biru',c:'#4d8dff',f:'#fff'},{n:'Armada Hijau',c:'#3ddc84',f:'#06210f'},{n:'Armada Kuning',c:'#ffd23f',f:'#2a2000'}];
+const T=[{n:'Armada Merah',c:'#ff5a6e',f:'#fff'},{n:'Armada Biru',c:'#4d8dff',f:'#fff'},{n:'Armada Hijau',c:'#3ddc84',f:'#06210f'},{n:'Armada Kuning',c:'#ffd23f',f:'#2a2000'},{n:'Armada Ungu',c:'#c77dff',f:'#1d0a33'},{n:'Armada Oranye',c:'#ff9f43',f:'#2a1500'}];
 const app=document.getElementById('app'),md=document.getElementById('md'),g=i=>document.getElementById(i);
 let G={n:4,mode:'cam',t:60},TM=null;
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,nz=(a,b)=>{let x=0;while(!x)x=rnd(a,b);return x},pick=a=>a[rnd(0,a.length-1)];
@@ -79,16 +80,16 @@ function set(k,v){G[k]=v;setup()}
 function setup(){
  const o=(key,arr)=>arr.map(([v,l])=>`<button class="btn${G[key]===v?' on':''}" onclick="set('${key}',${typeof v==='number'?v:`'${v}'`})">${l}</button>`).join('');
  app.innerHTML=`<a class="hm" href="index.html">← E-Matematika</a><h1>Perang Armada</h1><p class="mu">Kuis bilangan bulat untuk satu kelas. Tiap tim merebut sektor dengan menjawab soal isian.</p>
- <div class="pn"><b>Jumlah tim</b><div class="row" style="margin:8px 0 14px">${o('n',[[2,'2 tim'],[3,'3 tim'],[4,'4 tim']])}</div>
+ <div class="pn"><b>Jumlah tim</b><div class="row" style="margin:8px 0 14px">${o('n',[[2,'2 tim'],[3,'3 tim'],[4,'4 tim'],[5,'5 tim'],[6,'6 tim']])}</div>
  <b>Jenis soal</b><div class="row" style="margin:8px 0 14px">${o('mode',[['hit','Hitungan'],['cer','Soal cerita'],['cam','Campuran']])}</div>
- <b>Waktu per soal</b><div class="row" style="margin-top:8px">${o('t',[[30,'30 detik'],[60,'1 menit'],[90,'90 detik'],[0,'Tanpa waktu']])}</div></div>
- <div class="row"><button class="btn go" onclick="start()">Mulai permainan</button><button class="btn" onclick="rules()">Aturan</button></div>`;
+ <b>Waktu per soal</b><div class="row" style="margin-top:8px">${o('t',[[30,'30 detik'],[60,'1 menit'],[90,'90 detik'],[120,'2 menit'],[0,'Tanpa waktu']])}</div></div>
+ <div class="row"><button class="btn go" onclick="start()">Mulai permainan</button><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="fs()">Layar penuh</button></div>`;
 }
 function start(){G.own=Array(50).fill(-1);G.pts=Array(G.n).fill(0);G.turn=0;board()}
 function board(){
  const tm=T.slice(0,G.n).map((t,k)=>`<div class="tm${k===G.turn?' t':''}" style="border-color:${t.c}"><b style="color:${t.c}">${t.n}</b><br>${G.own.filter(o=>o===k).length} sektor, ${G.pts[k]} poin</div>`).join('');
  const cells=G.own.map((o,i)=>`<button class="sc" onclick="openSec(${i})"${o>=0?` style="background:${T[o].c};color:${T[o].f};border-color:${T[o].c}"`:''}>${i+1}</button>`).join('');
- app.innerHTML=`<div class="row">${tm}</div><p class="mu">Giliran: <b style="color:${T[G.turn].c}">${T[G.turn].n}</b>. Pilih sektor untuk diserang. Sektor milik tim lain boleh direbut.</p><div class="board">${cells}</div><div class="row" style="margin-top:14px"><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="finish()">Akhiri permainan</button></div>`;
+ app.innerHTML=`<div class="row">${tm}</div><p class="mu">Giliran: <b style="color:${T[G.turn].c}">${T[G.turn].n}</b>. Pilih sektor untuk diserang. Sektor milik tim lain boleh direbut.</p><div class="board">${cells}</div><div class="row" style="margin-top:14px"><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="fs()">Layar penuh</button><button class="btn" onclick="finish()">Akhiri permainan</button></div>`;
 }
 function openSec(i){
  G.sec=i;G.q=mk();G.done=false;
@@ -103,6 +104,7 @@ function openSec(i){
  <div class="row" style="margin-top:12px"><button class="btn go" id="go" onclick="serang()">Serang!</button><button class="btn" onclick="tutup()">Tutup</button></div></div>`;
  md.hidden=false;setTimeout(()=>g('in').focus(),50);startT();
 }
+function fs(){const d=document,e=d.documentElement;if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d)}else{const r=e.requestFullscreen||e.webkitRequestFullscreen;if(r)r.call(e)}}
 function rules(){
  md.innerHTML=`<div class="mc"><b style="font-size:1.4rem">Aturan Perang Armada</b>
  <ol class="rl">
