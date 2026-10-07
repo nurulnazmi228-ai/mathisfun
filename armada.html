@@ -27,7 +27,7 @@ h1{margin:6px 0;font-size:2.1rem;line-height:1.05}
 .tm{flex:1;min-width:120px;border:2px solid;border-radius:12px;padding:6px 10px;background:#0c2142;font-size:.9rem}
 .tm.t{box-shadow:0 0 0 3px #fff}
 .board{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-@media(min-width:600px){.board{grid-template-columns:repeat(var(--d,10),1fr);gap:8px}}
+@media(min-width:600px){.board{grid-template-columns:repeat(10,1fr);gap:8px}}
 .sc{font:inherit;font-weight:800;font-size:1.15rem;color:var(--mu);background:var(--pn);border:2px solid var(--ln);border-radius:10px;min-height:58px;padding:0;cursor:pointer}
 .md{position:fixed;inset:0;background:#030a16e6;display:flex;align-items:center;justify-content:center;padding:14px;z-index:5}
 .md[hidden]{display:none}
@@ -40,17 +40,40 @@ input{font:inherit;font-weight:800;font-size:1.6rem;text-align:center;width:100%
 .rk{display:flex;gap:12px;align-items:center;border-left:6px solid;padding:8px 10px;margin:6px 0;background:#0c2142;border-radius:10px;font-size:1.2rem}
 .rk span:last-child{margin-left:auto;color:var(--mu);font-size:.95rem}
 @media(min-width:1100px){#app{max-width:1300px}.sc{min-height:62px;font-size:1.4rem}.mc{max-width:900px}.qt{font-size:2.1rem}input{height:68px;font-size:2rem}.tm{font-size:1.05rem}}
-#mus{position:fixed;right:12px;bottom:12px;z-index:9;min-height:40px;font-size:.85rem;padding:4px 12px}
+.board.c5{grid-template-columns:repeat(5,1fr)}
+.board.c5 .sc{min-height:92px;font-size:2rem}
+.mt{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);right:8px;z-index:9;min-width:52px;padding:6px 10px}
 </style>
 </head>
 <body>
+<button class="btn mt" id="mt" onclick="toggleMute()" aria-label="Nyalakan atau matikan suara">🔊</button>
 <div id="app"></div>
 <div id="md" class="md" hidden></div>
-<button id="mus" class="btn" aria-pressed="false">🔇 Musik: mati</button>
 <script>
 const T=[{n:'Armada Merah',c:'#ff5a6e',f:'#fff'},{n:'Armada Biru',c:'#4d8dff',f:'#fff'},{n:'Armada Hijau',c:'#3ddc84',f:'#06210f'},{n:'Armada Kuning',c:'#ffd23f',f:'#2a2000'},{n:'Armada Ungu',c:'#c77dff',f:'#1d0a33'},{n:'Armada Oranye',c:'#ff9f43',f:'#2a1500'}];
 const app=document.getElementById('app'),md=document.getElementById('md'),g=i=>document.getElementById(i);
-let G={n:4,mode:'cam',t:60,sz:50},TM=null;
+let G={n:4,mode:'cam',t:60,ns:50},TM=null;
+const AU={ctx:null,mute:false,un:false,scr:'setup',bgm:null,op:new Audio('opening.mp3')};
+AU.op.loop=false;AU.op.volume=.55;
+AU.ok=new Audio('benar.mp3');AU.no=new Audio('salah.mp3');AU.cd=new Audio('hitung-mundur.mp3');
+[AU.op,AU.ok,AU.no,AU.cd].forEach(a=>a.addEventListener('error',()=>{a.bad=true}));
+function ac(){if(!AU.ctx){const C=window.AudioContext||window.webkitAudioContext;if(C)AU.ctx=new C()}if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();return AU.ctx}
+function tone(f,t0,d,type,v,f2){const c=ac();if(!c||AU.mute)return;const o=c.createOscillator(),gn=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(v,t0+.02);gn.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(gn);gn.connect(c.destination);o.start(t0);o.stop(t0+d+.05)}
+function sfx(k){if(k==='ok'&&!AU.ok.bad)return clip(AU.ok);if(k==='no'&&!AU.no.bad)return clip(AU.no);const c=ac();if(!c)return;const t=c.currentTime;
+ if(k==='ok')[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.09,.22,'triangle',.25));
+ else if(k==='no'){tone(220,t,.4,'sawtooth',.2,90);tone(165,t+.15,.4,'square',.12,70)}
+ else if(k==='time'){tone(440,t,.2,'square',.15);tone(330,t+.22,.35,'square',.15)}
+ else if(k==='win')[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,t+i*.12,.3,'triangle',.25))}
+const MEL=[523,0,659,0,784,659,0,523,587,0,698,0,880,698,0,587],BAS=[131,131,196,196,175,175,196,196];let bi=0;
+function bgmStop(){clearInterval(AU.bgm);AU.bgm=null}
+function bgmStart(){bgmStop();AU.bgm=setInterval(()=>{const c=ac();if(!c||AU.mute)return;const t=c.currentTime,i=bi%16;if(MEL[i])tone(MEL[i],t,.2,'square',.035);if(i%2===0)tone(BAS[i/2],t,.35,'triangle',.07);bi++},250)}
+function opPlay(){if(!AU.mute){const r=AU.op.play();if(r&&r.catch)r.catch(()=>{})}}
+function opStop(){AU.op.pause();AU.op.currentTime=0}
+function clip(a){if(AU.mute||a.bad)return;try{a.currentTime=0;const r=a.play();if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+function cdStop(){AU.cd.pause();AU.cd.currentTime=0}
+function toggleMute(){AU.mute=!AU.mute;g('mt').textContent=AU.mute?'\ud83d\udd07':'\ud83d\udd0a';
+ if(AU.mute){AU.op.pause();AU.cd.pause();bgmStop()}else if(AU.scr==='setup')opPlay();else if(AU.scr==='game')bgmStart()}
+['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{if(AU.un)return;AU.un=true;ac();if(AU.scr==='setup')opPlay();[AU.ok,AU.no,AU.cd].forEach(a=>{a.muted=true;const r=a.play();if(r&&r.then)r.then(()=>{a.pause();a.currentTime=0;a.muted=false}).catch(()=>{a.muted=false})})}));
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,nz=(a,b)=>{let x=0;while(!x)x=rnd(a,b);return x},pick=a=>a[rnd(0,a.length-1)];
 const s=n=>String(n).replace('-','\u2212'),p=n=>n<0?'('+s(n)+')':s(n);
 
@@ -88,42 +111,28 @@ const ST=[
 ()=>{const k=rnd(2,6),n=rnd(2,5);return{st:1,x:`Suhu sebuah kota berubah ${s(-k)}\u00b0C setiap hari (turun ${k}\u00b0C). Dibandingkan hari ini, berapa perubahan suhu ${n} hari yang lalu? (Waktu yang lalu dihitung negatif, jadi ${s(-n)} hari.)`,ans:k*n,h:`${p(-k)} \u00d7 ${p(-n)} = ${k*n}. Negatif \u00d7 negatif = positif.`}},
 ()=>{const k=rnd(2,9),n=rnd(2,8);return{st:1,x:`Sebuah kapal selam turun total ${n*k} meter dengan kecepatan tetap ${k} meter per menit (turun dihitung negatif). Berapa lama kapal turun, dalam menit? (Perubahan total ${s(-n*k)} m, perubahan per menit ${s(-k)} m.)`,ans:n,h:`${s(-n*k)} \u00f7 ${p(-k)} = ${n}. Negatif \u00f7 negatif = positif.`}}
 ];
-const LIT=[
-()=>{const t=Array.from({length:5},()=>rnd(-9,6)),mx=Math.max(...t),mn=Math.min(...t);return{st:1,x:`Stasiun cuaca di dataran tinggi mencatat suhu harian (\u00b0C) selama lima hari berturut-turut: ${t.map(s).join('; ')}. Berapa selisih antara suhu tertinggi dan suhu terendah?`,ans:mx-mn,h:`Tertinggi ${s(mx)}, terendah ${s(mn)}. Selisih = ${s(mx)} \u2212 ${p(mn)} = ${s(mx-mn)}.`}},
-()=>{const a=rnd(10,40),b=rnd(20,60),c=rnd(5,40),k=rnd(1,5);return{st:1,x:`Dompet digital Dimas awalnya berisi ${a} ribu rupiah. Ia membeli buku seharga ${b} ribu, lalu menerima kiriman uang ${c} ribu, dan terkena biaya layanan ${k} ribu. Dompet digital ini boleh bernilai negatif (berutang). Berapa saldo akhirnya (dalam ribu rupiah)?`,ans:a-b+c-k,h:`${a} \u2212 ${b} + ${c} \u2212 ${k} = ${s(a-b+c-k)}.`}},
-()=>{const h=rnd(100,900),d=rnd(100,900);return{st:1,x:`Di sebuah peta timbul, puncak bukit berada ${h} m di atas permukaan laut, sedangkan dasar parit laut berada ${d} m di bawah permukaan laut (ditulis ${s(-d)} m). Berapa selisih ketinggian puncak bukit dan dasar parit?`,ans:h+d,h:`${h} \u2212 ${p(-d)} = ${h} + ${d} = ${h+d}.`}},
-()=>{const v=Array.from({length:4},()=>nz(-25,25)),t=v.reduce((x,y)=>x+y,0);return{st:1,x:`Catatan kios Bu Sari (dalam ribu rupiah, laba bernilai positif dan rugi bernilai negatif): Senin ${s(v[0])}, Selasa ${s(v[1])}, Rabu ${s(v[2])}, Kamis ${s(v[3])}. Berapa jumlah laba atau rugi selama empat hari tersebut?`,ans:t,h:`${v.map(p).join(' + ')} = ${s(t)}.`}},
-()=>{const b=rnd(3,10),w=rnd(1,6),k=rnd(0,4);return{st:1,x:`Aturan lomba cerdas cermat: jawaban benar +5, jawaban salah \u22123, tidak menjawab 0. Tim Garuda menjawab ${b} soal benar, ${w} soal salah, dan melewatkan ${k} soal. Berapa skor akhir tim Garuda?`,ans:5*b-3*w,h:`${b} \u00d7 5 = ${5*b}; ${w} \u00d7 (\u22123) = ${s(-3*w)}; jumlah = ${s(5*b-3*w)}. Soal yang dilewatkan tidak mengubah skor.`}},
-()=>{const a=rnd(100,600),b=rnd(20,500);return{st:1,x:`Seorang pujangga dalam naskah kuno lahir pada tahun ${a} SM (ditulis ${s(-a)}) dan wafat pada tahun ${b} M. Hitung lama hidupnya dengan pengurangan tahun akhir \u2212 tahun awal (abaikan perihal tahun 0). Berapa tahun hasilnya?`,ans:a+b,h:`${b} \u2212 ${p(-a)} = ${b} + ${a} = ${a+b}.`}},
-()=>{const a=rnd(3,12),b=rnd(2,9),c=rnd(3,12);return{st:1,x:`Seorang penyelam mulai dari permukaan laut (0 m). Ia turun ${a} m, naik ${b} m untuk memeriksa kamera, lalu turun lagi ${c} m. Pada kedalaman berapa ia sekarang? (Tulis sebagai bilangan bulat; di bawah permukaan laut bernilai negatif.)`,ans:-a+b-c,h:`${p(-a)} + ${b} + ${p(-c)} = ${s(-a+b-c)}.`}},
-()=>{const a=rnd(2,6),b=rnd(2,9),c=rnd(2,6),d=rnd(2,9);return{st:1,x:`Dalam permainan papan, bidak Bimo mulai dari petak 0. Kartu yang ia ambil berurutan: maju ${a}, mundur ${b}, maju ${c}, mundur ${d}. Di petak berapa bidak Bimo berhenti? (Petak boleh negatif.)`,ans:a-b+c-d,h:`${a} \u2212 ${b} + ${c} \u2212 ${d} = ${s(a-b+c-d)}.`}},
-()=>{const a=rnd(2,5),b=rnd(0,a-1),d=rnd(2,6),c=rnd(0,d-1),e=rnd(0,3);return{st:1,x:`Klub Elang bermain tiga laga: menang ${a}\u2013${b}, kalah ${c}\u2013${d}, dan seri ${e}\u2013${e}. Selisih gol tiap laga = gol cetak \u2212 gol kebobolan. Berapa total selisih gol Elang dari ketiga laga?`,ans:(a-b)+(c-d),h:`(${a} \u2212 ${b}) + (${c} \u2212 ${d}) + 0 = ${a-b} + ${p(c-d)} = ${s(a-b+c-d)}.`}},
-()=>{const r=rnd(20,32),f=rnd(5,25);return{st:1,x:`Es krim disimpan di ruang dapur bersuhu ${r}\u00b0C, lalu dipindahkan ke freezer bersuhu ${s(-f)}\u00b0C. Berapa perubahan suhu es krim? (Perubahan = suhu akhir \u2212 suhu awal.)`,ans:-f-r,h:`${p(-f)} \u2212 ${r} = ${s(-f-r)}.`}},
-()=>{const a=rnd(10,40),b=rnd(10,40),c=rnd(5,30);return{st:1,x:`Ayah meminjam ${a} ribu rupiah dari paman dan ${b} ribu rupiah dari bibi. Utang dituliskan sebagai bilangan negatif. Setelah itu ayah membayar ${c} ribu rupiah kepada paman. Berapa nilai keadaan keuangan ayah sekarang terhadap pinjaman itu (dalam ribu rupiah)?`,ans:-a-b+c,h:`${p(-a)} + ${p(-b)} + ${c} = ${s(-a-b+c)}.`}},
-()=>{const a=rnd(1,4),b=rnd(2,8);return{st:1,x:`Sebuah mobil terparkir di basement lantai ${s(-a)}. Pemiliknya naik lift ke lantai ${b} untuk berbelanja. Berapa banyak lantai yang dilewati lift selama naik? (Lantai 0 dihitung sebagai satu lantai.)`,ans:a+b,h:`${b} \u2212 ${p(-a)} = ${b} + ${a} = ${a+b}.`}},
-()=>{let t,m;do{m=rnd(-6,3);t=[rnd(-10,6),rnd(-10,6),rnd(-10,6)];t.push(4*m-t.reduce((x,y)=>x+y,0))}while(Math.abs(t[3])>15);return{st:1,x:`Suhu empat pagi berturut-turut di sebuah desa dingin adalah ${t.map(s).join('\u00b0C; ')}\u00b0C. Rata-rata suhu = jumlah suhu dibagi banyak hari. Berapa rata-rata suhu pagi itu?`,ans:m,h:`Jumlah = ${s(4*m)}. Rata-rata = ${s(4*m)} \u00f7 4 = ${s(m)}.`}},
-()=>{const a=rnd(3,9),n=rnd(2,6),b=rnd(2,15);return{st:1,x:`Sebuah drone penyelamat turun dari ketinggian 0 m ke dalam lembah. Ia turun ${a} m tiap menit selama ${n} menit, lalu naik ${b} m untuk menghindari batu. Di ketinggian berapa drone sekarang?`,ans:-a*n+b,h:`${p(-a)} \u00d7 ${n} = ${s(-a*n)}; ${s(-a*n)} + ${b} = ${s(-a*n+b)}.`}}
-];
-const mk=()=>G.mode==='hit'?calc():G.mode==='cer'?pick(ST)():G.mode==='lit'?pick(LIT)():(()=>{const r=Math.random();return r<.35?calc():r<.65?pick(ST)():pick(LIT)()})();
+const mk=()=>G.mode==='hit'?calc():G.mode==='cer'?pick(ST)():(Math.random()<.5?calc():pick(ST)());
 
 function set(k,v){G[k]=v;setup()}
 function setup(){
+ if(AU.scr!=='setup'){AU.scr='setup';bgmStop();opPlay()}
  const o=(key,arr)=>arr.map(([v,l])=>`<button class="btn${G[key]===v?' on':''}" onclick="set('${key}',${typeof v==='number'?v:`'${v}'`})">${l}</button>`).join('');
  app.innerHTML=`<a class="hm" href="index.html">← E-Matematika</a><h1>Perang Armada</h1><p class="mu">Kuis bilangan bulat untuk satu kelas. Tiap tim merebut sektor dengan menjawab soal isian.</p>
  <div class="pn"><b>Jumlah tim</b><div class="row" style="margin:8px 0 14px">${o('n',[[2,'2 tim'],[3,'3 tim'],[4,'4 tim'],[5,'5 tim'],[6,'6 tim']])}</div>
- <b>Jumlah soal (sektor di papan)</b><div class="row" style="margin:8px 0 14px">${o('sz',[[25,'25 soal'],[50,'50 soal'],[100,'100 soal']])}</div>
- <b>Jenis soal</b><div class="row" style="margin:8px 0 14px">${o('mode',[['hit','Hitungan'],['cer','Soal cerita'],['lit','Literasi'],['cam','Campuran']])}</div>
- <b>Waktu per soal</b><div class="row" style="margin-top:8px">${o('t',[[30,'30 detik'],[60,'1 menit'],[90,'90 detik'],[120,'2 menit'],[0,'Tanpa waktu']])}</div></div>
+ <b>Jenis soal</b><div class="row" style="margin:8px 0 14px">${o('mode',[['hit','Hitungan'],['cer','Soal cerita'],['cam','Campuran']])}</div>
+ <b>Waktu per soal</b><div class="row" style="margin:8px 0 14px">${o('t',[[30,'30 detik'],[60,'1 menit'],[90,'90 detik'],[120,'2 menit'],[0,'Tanpa waktu']])}</div>
+ <b>Jumlah soal (kotak di papan)</b><div class="row" style="margin-top:8px">${o('ns',[[25,'25 soal'],[50,'50 soal'],[100,'100 soal']])}</div>
+ <p class="mu" style="margin:12px 0 0">Musik pembuka menyala setelah layar disentuh atau diklik pertama kali. Tombol speaker di pojok kanan atas untuk mematikan suara.</p></div>
  <div class="row"><button class="btn go" onclick="start()">Mulai permainan</button><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="fs()">Layar penuh</button></div>`;
 }
-function start(){G.own=Array(G.sz).fill(-1);G.pts=Array(G.n).fill(0);G.turn=0;board()}
+function start(){G.own=Array(G.ns).fill(-1);AU.scr='game';opStop();bgmStart();G.pts=Array(G.n).fill(0);G.turn=0;board()}
 function board(){
  const tm=T.slice(0,G.n).map((t,k)=>`<div class="tm${k===G.turn?' t':''}" style="border-color:${t.c}"><b style="color:${t.c}">${t.n}</b><br>${G.own.filter(o=>o===k).length} sektor, ${G.pts[k]} poin</div>`).join('');
  const cells=G.own.map((o,i)=>`<button class="sc" onclick="openSec(${i})"${o>=0?` style="background:${T[o].c};color:${T[o].f};border-color:${T[o].c}"`:''}>${i+1}</button>`).join('');
- app.innerHTML=`<div class="row">${tm}</div><p class="mu">Giliran: <b style="color:${T[G.turn].c}">${T[G.turn].n}</b>. Pilih sektor untuk diserang. Sektor milik tim lain boleh direbut.</p><div class="board" style="--d:${G.sz===25?5:10}">${cells}</div><div class="row" style="margin-top:14px"><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="fs()">Layar penuh</button><button class="btn" onclick="finish()">Akhiri permainan</button></div>`;
+ app.innerHTML=`<div class="row">${tm}</div><p class="mu">Giliran: <b style="color:${T[G.turn].c}">${T[G.turn].n}</b>. Pilih sektor untuk diserang. Sektor milik tim lain boleh direbut.</p><div class="board${G.ns===25?' c5':''}">${cells}</div><div class="row" style="margin-top:14px"><button class="btn" onclick="rules()">Aturan</button><button class="btn" onclick="fs()">Layar penuh</button><button class="btn" onclick="finish()">Akhiri permainan</button></div>`;
 }
 function openSec(i){
- G.sec=i;G.q=mk();G.done=false;sfx('tap');
+ G.sec=i;G.q=mk();G.done=false;
  G.att=G.own[i]===G.turn?(G.turn+1)%G.n:G.turn;
  const q=G.q,o=G.own[i];
  const at=T.slice(0,G.n).map((t,k)=>`<button class="btn at${k===G.att?' on':''}"${k===o?' disabled':''} onclick="setAtt(${k})" style="color:${t.c}">${t.n}</button>`).join('');
@@ -140,7 +149,7 @@ function rules(){
  md.innerHTML=`<div class="mc"><b style="font-size:1.4rem">Aturan Perang Armada</b>
  <ol class="rl">
  <li>Kelas dibagi menjadi beberapa tim yang disebut armada. Tujuannya: merebut sektor sebanyak-banyaknya.</li>
- <li>Papan punya 25, 50, atau 100 sektor bernomor (sesuai pilihan guru). Tiap sektor berisi satu soal bilangan bulat, berupa hitungan, soal cerita, atau soal literasi (bacaan singkat).</li>
+ <li>Papan berisi sektor bernomor (25, 50, atau 100, sesuai pilihan di layar awal). Tiap sektor berisi satu soal operasi hitung bilangan bulat, berupa hitungan atau soal cerita.</li>
  <li>Armada yang mendapat giliran memilih satu sektor, lalu soal muncul di layar.</li>
  <li>Tim berdiskusi dan menyebutkan satu jawaban akhir berupa bilangan bulat. Perhatikan tanda positif dan negatifnya. Jawaban harus disebutkan sebelum waktu habis.</li>
  <li>Jawaban benar: armada merebut sektor itu dan mendapat 10 poin.</li>
@@ -155,20 +164,21 @@ function rules(){
  <div class="row"><button class="btn go" onclick="md.hidden=true">Mengerti</button></div></div>`;
  md.hidden=false;
 }
-function stopT(){if(TM){clearInterval(TM);TM=null}}
+function stopT(){if(TM){clearInterval(TM);TM=null}cdStop()}
 function startT(){
  stopT();if(!G.t)return;
- const lim=G.t*1000,t0=Date.now(),f=g('tbf'),tt=g('tt');
+ const lim=G.t*1000,t0=Date.now(),f=g('tbf'),tt=g('tt');let cd=false;
  TM=setInterval(()=>{
   const r=Math.max(0,lim-(Date.now()-t0)),pc=r/lim*100;
   f.style.width=pc+'%';f.style.background=pc<25?'var(--no)':pc<50?'#ffd23f':'var(--ok)';
   tt.textContent=Math.ceil(r/1000)+' detik';
-  if(r<=0){stopT();timeUp()}
+  if(r<=5300&&!cd){cd=true;clip(AU.cd)}
+  if(r<=0){clearInterval(TM);TM=null;timeUp()}
  },200);
 }
 function timeUp(){
- if(G.done)return;
- G.done=true;const k=G.att;sfx('bad');
+ if(G.done)return;if(AU.cd.bad)sfx('time');
+ G.done=true;const k=G.att;
  g('fb').innerHTML=`<div class="fb no"><b>Waktu habis. Jawaban yang benar: ${s(G.q.ans)}</b><span>${G.q.h}</span></div>`;
  g('in').disabled=true;document.querySelectorAll('.at').forEach(b=>b.disabled=true);
  g('go').textContent='Lanjut';G.turn=(k+1)%G.n;
@@ -178,39 +188,18 @@ function serang(){
  if(G.done)return tutup();
  const v=g('in').value.replace(/\u2212/g,'-').replace(/\s/g,'');
  if(!/^[-+]?\d+$/.test(v)){g('fb').innerHTML='<div class="fb no">Ketik bilangan bulat saja, contoh: \u22125 atau 12.</div>';return}
- stopT();G.done=true;const ok=+v===G.q.ans,k=G.att;sfx(ok?'ok':'bad');
- if(ok){G.own[G.sec]=k;G.pts[k]+=10}
+ stopT();G.done=true;const ok=+v===G.q.ans,k=G.att;
+ sfx(ok?'ok':'no');if(ok){G.own[G.sec]=k;G.pts[k]+=10}
  g('fb').innerHTML=ok?`<div class="fb ok"><b>Tepat! ${T[k].n} merebut sektor ${G.sec+1}.</b><span>${G.q.h}</span></div>`:`<div class="fb no"><b>Belum tepat. Jawaban yang benar: ${s(G.q.ans)}</b><span>${G.q.h}</span></div>`;
  g('in').disabled=true;document.querySelectorAll('.at').forEach(b=>b.disabled=true);
  g('go').textContent='Lanjut';G.turn=(k+1)%G.n;
 }
 function tutup(){stopT();md.hidden=true;board()}
-function finish(){sfx('win');
+function finish(){
+ AU.scr='end';bgmStop();sfx('win');
  const r=T.slice(0,G.n).map((t,k)=>({k,s:G.own.filter(o=>o===k).length,p:G.pts[k]})).sort((a,b)=>b.s-a.s||b.p-a.p);
  app.innerHTML=`<h1>Hasil Perang Armada</h1><div class="pn">${r.map((e,i)=>`<div class="rk" style="border-color:${T[e.k].c}"><span>${i===0?'\ud83c\udfc6':i+1}</span><b style="color:${T[e.k].c}">${T[e.k].n}</b><span>${e.s} sektor, ${e.p} poin</span></div>`).join('')}</div><p class="mu">Urutan dihitung dari jumlah sektor, lalu poin.</p><div class="row"><button class="btn go" onclick="setup()">Main lagi</button><button class="btn" onclick="board()">Kembali ke papan</button></div>`;
 }
-/* ====== MUSIK LATAR & EFEK SUARA (dibuat browser, tanpa file audio) ====== */
-let AC=null,MS=null,musicOn=false,muted=false,tick=null,stp=0,touched=false;
-const MEL=[440,0,392,330,392,0,330,294,262,0,294,330,294,0,262,220],BAS=[110,110,131,98];
-function ac(){if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MS=AC.createGain();MS.gain.value=.5;MS.connect(AC.destination)}
- if(AC.state==='suspended')AC.resume();return AC}
-function tn(f,t,d,ty,v){const o=AC.createOscillator(),gn=AC.createGain();o.type=ty;o.frequency.value=f;
- gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(v,t+.02);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
- o.connect(gn);gn.connect(MS);o.start(t);o.stop(t+d+.05)}
-function beat(){const t=AC.currentTime+.05,m=MEL[stp%MEL.length];
- if(m)tn(m,t,.28,'triangle',.09);
- if(stp%2===0)tn(BAS[(stp>>1)%BAS.length],t,.4,'sine',.12);
- stp++}
-function setMusic(on){musicOn=on;clearInterval(tick);if(on){ac();tick=setInterval(beat,260)}
- const b=g('mus');b.textContent=on?'\ud83d\udd0a Musik: nyala':'\ud83d\udd07 Musik: mati';b.setAttribute('aria-pressed',on)}
-function sfx(k){if(!musicOn)return;ac();const t=AC.currentTime;
- if(k==='ok'){tn(523,t,.16,'square',.12);tn(659,t+.11,.16,'square',.12);tn(784,t+.22,.3,'square',.12)}
- else if(k==='bad'){tn(220,t,.25,'sawtooth',.12);tn(165,t+.2,.4,'sawtooth',.12)}
- else if(k==='tap'){tn(660,t,.08,'square',.08)}
- else if(k==='win'){[523,659,784,1047,784,1047].forEach((f,i)=>tn(f,t+i*.16,.3,'square',.12))}}
-g('mus').onclick=()=>{muted=musicOn;setMusic(!musicOn);touched=true};
-document.addEventListener('pointerdown',e=>{if(e.target.closest('#mus'))return;if(!touched){touched=true;if(!muted)setMusic(true)}});
-document.addEventListener('visibilitychange',()=>{if(!AC)return;if(document.hidden){clearInterval(tick);AC.suspend()}else if(musicOn){AC.resume();clearInterval(tick);tick=setInterval(beat,260)}});
 setup();
 </script>
 </body>
