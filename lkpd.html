@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LKPD Aplikasi Bilangan Bulat</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f7fb;--card:#fff;--tx:#1d2433;--mut:#5b6578;--pri:#2f6f5e;--acc:#e9f4f0;--bd:#d5dae5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161d;--card:#1b212b;--tx:#e8ecf3;--mut:#9aa5b8;--pri:#6cc4aa;--acc:#1f2e2a;--bd:#2d3646}}
+:root[data-theme="dark"]{--bg:#12161d;--card:#1b212b;--tx:#e8ecf3;--mut:#9aa5b8;--pri:#6cc4aa;--acc:#1f2e2a;--bd:#2d3646}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0}
+.sub{color:var(--mut);margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin:14px 0}
+.sec{background:var(--pri);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;margin-top:22px}
+.sec small{font-weight:400;opacity:.9;display:block}
+.q{font-weight:600;margin:0 0 8px}
+.hint{background:var(--acc);border-radius:8px;padding:8px 10px;font-size:.9rem;margin:0 0 10px;color:var(--tx)}
+label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 4px}
+input,textarea{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px 10px}
+input:focus,textarea:focus{outline:2px solid var(--pri);border-color:transparent}
+textarea{min-height:70px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.row{grid-template-columns:1fr}}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:8px 0;z-index:5}
+.pb{height:8px;background:var(--bd);border-radius:6px;overflow:hidden}
+.pb i{display:block;height:100%;width:0;background:var(--pri);transition:width .3s}
+.pt{font-size:.8rem;color:var(--mut);margin-top:4px}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 16px;background:var(--pri);color:#fff;cursor:pointer;width:100%;margin-top:8px}
+button.alt{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+#out{min-height:140px;font-size:.85rem}
+@media print{.bar,button{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<main>
+<h1>📘 LKPD: Aplikasi Bilangan Bulat</h1>
+<p class="sub">Matematika SMP · Soal Cerita · Isi langsung pada kolom yang tersedia</p>
+
+<div class="bar"><div class="pb"><i id="pbi"></i></div><div class="pt" id="pt">Terisi 0 dari 0 soal</div></div>
+
+<div class="card">
+<b>Petunjuk</b>
+<ol style="margin:6px 0 0;padding-left:20px">
+<li>Isi identitas terlebih dahulu.</li>
+<li>Baca setiap cerita dengan teliti. Ubah menjadi <b>kalimat matematika</b> (bilangan positif/negatif).</li>
+<li>Tuliskan langkah penyelesaian, lalu jawaban akhir beserta satuannya.</li>
+<li>Setelah selesai, tekan <b>Unduh PDF Jawaban</b> di bagian bawah, lalu kirim file PDF-nya ke WhatsApp guru.</li>
+</ol>
+</div>
+
+<div class="card">
+<div class="row">
+<div><label for="nama">Nama</label><input id="nama" autocomplete="off"></div>
+<div><label for="kelas">Kelas / No. Absen</label><input id="kelas" autocomplete="off"></div>
+</div>
+</div>
+
+<div id="soal"></div>
+
+<div class="card">
+<button id="dl">Unduh PDF Jawaban</button>
+<div class="pt" id="msg"></div>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var D=[
+{t:"Bagian A · Suhu dan Ketinggian",s:"Garis bilangan: di atas nol positif, di bawah nol negatif",q:[
+{p:"Pagi hari suhu di kota Moskow −8°C. Siang hari suhu naik 5°C, kemudian malam hari turun 11°C. Berapa suhu di Moskow pada malam hari?",h:"Mulai dari −8, naik berarti tambah, turun berarti kurang."},
+{p:"Sebuah kapal selam berada pada kedalaman 120 m di bawah permukaan laut. Kapal naik 45 m, lalu turun lagi 70 m. Tentukan posisi akhir kapal selam terhadap permukaan laut!",h:"Kedalaman 120 m ditulis −120."},
+{p:"Seekor elang terbang pada ketinggian 350 m di atas permukaan laut. Di bawahnya, seekor ikan berenang pada kedalaman 60 m di bawah permukaan laut. Berapa selisih ketinggian elang dan ikan?",h:"Selisih = tinggi − rendah. Hati-hati mengurangi bilangan negatif."}]},
+{t:"Bagian B · Keuangan",s:"Untung/uang masuk positif, rugi/utang negatif",q:[
+{p:"Andi mempunyai utang Rp45.000 di kantin. Hari ini ia mendapat uang saku Rp30.000 dan seluruhnya dipakai untuk membayar utang. Berapa keadaan keuangan Andi sekarang (sisa utang atau sisa uang)?",h:"Utang Rp45.000 ditulis −45.000."},
+{p:"Toko Bu Sari pada hari Senin untung Rp75.000, Selasa rugi Rp40.000, dan Rabu rugi Rp55.000. Berapa untung atau rugi toko selama tiga hari tersebut?",h:"Rugi ditulis negatif. Jumlahkan ketiga hari."},
+{p:"Saldo dompet digital Dina Rp120.000. Ia berbelanja online 3 kali, tiap belanja membayar Rp65.000 (dianggap saldo berkurang). Berapa saldo Dina setelah 3 kali belanja? Apa arti hasilnya?",h:"Saldo akhir = 120.000 + 3 × (−65.000)."}]},
+{t:"Bagian C · Kehidupan Sehari-hari",s:"Lift, kuis, dan pendinginan",q:[
+{p:"Rafi berada di lantai 3 sebuah gedung. Ia naik lift turun 7 lantai, kemudian naik 2 lantai. Rafi sekarang berada di lantai berapa? (Lantai di bawah tanah bernilai negatif)",h:"Lantai 0 = lantai dasar."},
+{p:"Dalam sebuah kuis, jawaban benar diberi skor +4, jawaban salah −2, dan tidak dijawab 0. Nadia menjawab benar 18 soal, salah 7 soal, dan tidak menjawab 5 soal. Berapa skor akhir Nadia?",h:"Skor = (18 × 4) + (7 × (−2)) + (5 × 0)."},
+{p:"Suhu sebuah lemari pendingin mula-mula 6°C. Suhu turun 3°C setiap jam. Berapa suhu lemari pendingin setelah 5 jam?",h:"Turun 3°C tiap jam artinya 5 × (−3)."}]},
+{t:"Bagian D · Bernalar dan Mencipta",s:"Periksa, jelaskan, dan buat soal sendiri",q:[
+{p:"Tia mengerjakan (−6) − (−4) dan mendapat hasil −10. Menurutmu, apakah jawaban Tia benar? Jika salah, tuliskan jawaban yang benar dan jelaskan kesalahan Tia!",h:"Mengurangi bilangan negatif sama dengan menambah lawannya."},
+{p:"Buatlah satu soal cerita dari kehidupan sehari-harimu yang jawabannya −5. Tuliskan ceritanya, kalimat matematikanya, dan penyelesaiannya!",h:"Boleh tentang suhu, uang, lantai, permainan, atau lainnya."}]}
+];
+var all=[],box=document.getElementById("soal"),n=0;
+D.forEach(function(g){
+ var h=document.createElement("div");h.className="sec";h.innerHTML=g.t+"<small>"+g.s+"</small>";box.appendChild(h);
+ g.q.forEach(function(x){
+  n++;var id=n;all.push({id:id,p:x.p,sec:g.t});
+  var c=document.createElement("div");c.className="card";
+  c.innerHTML='<p class="q">'+id+'. '+x.p+'</p><div class="hint">💡 '+x.h+'</div>'+
+  '<label for="m'+id+'">Kalimat matematika &amp; langkah penyelesaian</label><textarea id="m'+id+'"></textarea>'+
+  '<label for="a'+id+'">Jawaban akhir (dengan satuan / kesimpulan)</label><input id="a'+id+'" autocomplete="off">';
+  box.appendChild(c);
+ });
+});
+function prog(){
+ var d=0;all.forEach(function(x){if(val("m"+x.id)&&val("a"+x.id))d++;});
+ document.getElementById("pbi").style.width=(d/all.length*100)+"%";
+ document.getElementById("pt").textContent="Terisi "+d+" dari "+all.length+" soal";
+}
+function val(i){return document.getElementById(i).value.trim();}
+document.addEventListener("input",prog);prog();
+var msg=document.getElementById("msg");
+function cl(s){return String(s||"").replace(/\u2212/g,"-").replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[^\x09\x0A\x0D\x20-\xFF]/g,"?");}
+function fname(){return "LKPD_"+(val("nama")||"siswa").replace(/[^A-Za-z0-9]+/g,"_")+".pdf";}
+function buildPdf(){
+ var J=window.jspdf.jsPDF,doc=new J({unit:"mm",format:"a4"}),W=180,y=18,L=15;
+ function tx(t,sz,b){doc.setFont("helvetica",b?"bold":"normal");doc.setFontSize(sz);
+  var ls=doc.splitTextToSize(cl(t),W),h=ls.length*sz*0.42+2;
+  if(y+h>282){doc.addPage();y=18;}
+  doc.text(ls,L,y);y+=h;}
+ tx("LKPD APLIKASI BILANGAN BULAT",14,1);
+ tx("Nama: "+val("nama"),11);tx("Kelas/Absen: "+val("kelas"),11);
+ tx("Waktu: "+new Date().toLocaleString("id-ID"),9);
+ var cur="";
+ all.forEach(function(x){
+  if(x.sec!==cur){cur=x.sec;y+=3;tx(cur,12,1);}
+  tx(x.id+". "+x.p,10,1);
+  tx("Langkah: "+(val("m"+x.id)||"-"),10);
+  tx("Jawaban: "+(val("a"+x.id)||"-"),10,1);
+  y+=2;
+ });
+ return doc;
+}
+function cek(){if(!val("nama")){msg.textContent="Isi nama dulu ya.";document.getElementById("nama").focus();return false;}return true;}
+document.getElementById("dl").onclick=function(){
+ if(!cek())return;
+ try{buildPdf().save(fname());msg.textContent="PDF tersimpan di perangkatmu. Kirim file ini ke WhatsApp guru.";}catch(e){msg.textContent="Gagal membuat PDF. Coba muat ulang halaman.";}
+};
+</script>
+</body>
+</html>
